@@ -1,4 +1,5 @@
 #SingleInstance force
+Start:
 ;Delay time for hiding the notification windows
 _DelayTime = 1000
 
@@ -110,13 +111,15 @@ loadSettings()
 
 			if (settingsCmd = "exit")
 			{
-				showNotification("Exiting app")
+				showNotification(settingsName)
 				Sleep, %_DelayTime%
 				ExitApp
 			}
 			else if (settingsCmd = "reload")
 			{
-				loadSettings()
+				showNotification(settingsName)
+				Sleep, %_DelayTime%
+				goto Start
 				Break
 			}
 		}
