@@ -15,11 +15,11 @@ _webHotKeyPrefix := "web_"
 _webModeHotKeySection := _webHotKeyPrefix . "mode"
 _webHotKeySection := _webHotKeyPrefix . "hotkey"
 	;Array of webhotkeys
+	;[hotkeys][var]
 _arrayWebKeys := {}
 _arrayWebName :={}
 	;List of webhotkeys seperated by ,
 _strWebHotKeys := ""
-
 
 ;INI settings - app
 _appHotKeyPrefix := "app_"
@@ -29,6 +29,14 @@ _arrayAppPath := {}
 _arrayAppName := {}
 _strAppHotKeys := ""
 
+;INI settings - settings
+_settingsHotKeyPrefix := "settings_"
+_settingsModeHotKeySection := _settingsHotKeyPrefix . "mode"
+_settingsHotKeySection := _settingsHotKeyPrefix . "hotkey"
+_strSettingsHotKeys := ""
+_arraySettingsName := {}
+_arraySettingsCommand := {}
+
 ;Modes keyword
 _arrayModeKeyword := {}
 _strAvailableModes := ""
@@ -37,11 +45,10 @@ _NotificationID := ""
 
 ;Back one level msg
 _strBackOneLevel := "`nPress backspace key to go back"
-;Esc msg
-_strQuit := "`nPress escape key to quit"
+;Hide msg
+_strQuit := "`nPress escape key to hide"
 
 loadSettings()
-
 
 ^!+n::
 {
@@ -53,7 +60,7 @@ loadSettings()
 		{
 			Break
 		}
-		if (userMode == "web_mode")
+		if (userMode = "web_mode")
 		{
 			inputReturn := getUserInput(UserInput, "[ web_mode ]`n" . _strWebHotKeys . _strBackOneLevel . _strQuit)
 			webURL := _arrayWebKeys[UserInput]
@@ -74,7 +81,7 @@ loadSettings()
 				Continue
 			}
 		}
-		else if (userMode == "app_mode")
+		else if (userMode = "app_mode")
 		{
 			inputReturn := getUserInput(UserInput, "[ app_mode ]`n" . _strAppHotKeys . _strBackOneLevel . _strQuit)
 			path := _arrayAppPath[UserInput]
@@ -93,6 +100,24 @@ loadSettings()
 			else 
 			{
 				Continue
+			}
+		}
+		else if (userMode = "settings_mode")
+		{
+			inputReturn := getUserInput(UserInput,"[ settings ]`n" . _strSettingsHotKeys . _strBackOneLevel . _strQuit)
+			settingsName := _arraySettingsName[UserInput]
+			settingsCmd := _arraySettingsCommand[UserInput]
+
+			if (settingsCmd = "exit")
+			{
+				showNotification("Exiting app")
+				Sleep, %_DelayTime%
+				ExitApp
+			}
+			else if (settingsCmd = "reload")
+			{
+				loadSettings()
+				Break
 			}
 		}
 		else 
@@ -152,6 +177,7 @@ loadSettings()
 	loadWebHotKeys(_iniFilename)
 	loadAppHotKeys(_iniFilename)
 	loadModeKeyWord(_iniFilename)
+	loadSettingsHotKeys(_iniFilename)
 }
 
 loadAppHotKeys(filename)
@@ -163,7 +189,7 @@ loadAppHotKeys(filename)
 	global _arrayAppName := {}
 
 	IniRead, _strAppHotKeys, %filename%, %_appHotKeySection%, Keyword
-	splitHotKeys(_arrayAppPath, _arrayAppName, _strAppHotKeys, _appHotKeyPrefix, filename, "Path")
+	splitHotKeys(_arrayAppPath, _arrayAppName, _strAppHotKeys, _appHotKeyPrefix, filename, "Path", "Name")
 
 	_strAppHotKeys := ""
 	combineKeywordArray(_strAppHotKeys,_arrayAppPath)
@@ -178,10 +204,26 @@ loadWebHotKeys(filename)
 	global _arrayWebName := {}
 
 	IniRead, _strWebHotKeys, %filename%, %_webHotKeySection%, Keyword
-	splitHotKeys(_arrayWebKeys, _arrayWebName, _strWebHotKeys, _webHotKeyPrefix, filename, "Link")
+	splitHotKeys(_arrayWebKeys, _arrayWebName, _strWebHotKeys, _webHotKeyPrefix, filename, "Link", "Name")
 
 	_strWebHotKeys := ""
 	combineKeywordArray(_strWebHotKeys,_arrayWebKeys)
+}
+
+loadSettingsHotKeys(filename)
+{
+	global _settingsHotKeyPrefix
+	global _settingsModeHotKeySection
+	global _settingsHotKeySection
+	global _strSettingsHotKeys
+	global _arraySettingsName := {}
+	global _arraySettingsCommand := {}
+
+	IniRead, _strSettingsHotKeys, %filename%, %_settingsHotKeySection%, Keyword
+	splitHotKeys(_arraySettingsCommand, _arraySettingsName, _strSettingsHotKeys, _settingsHotKeyPrefix, filename, "Cmd", "Name")
+
+	_strSettingsHotKeys := ""
+	combineKeywordArray(_strSettingsHotKeys, _arraySettingsName)
 }
 
 combineKeywordArray(ByRef string, array)
@@ -234,7 +276,7 @@ loadModeKeyWord(filename)
 	}
 }
 
-splitHotKeys(ByRef outputArray, ByRef outputNameArray, inputString, prefix, iniFilename, keyName)
+splitHotKeys(ByRef outputArray, ByRef outputNameArray, inputString, prefix, iniFilename, keyName, keyTitle)
 {
 	StringSplit, tmp, inputString, `,
 	Loop, %tmp0%
@@ -242,11 +284,14 @@ splitHotKeys(ByRef outputArray, ByRef outputNameArray, inputString, prefix, iniF
 		str:= tmp%A_Index%
 		strPrefix := prefix . str
 		IniRead, key, %iniFilename%, %strPrefix%, %keyName%
-		IniRead, name, %iniFilename%, %strPrefix%, Name
+		IniRead, name, %iniFilename%, %strPrefix%, %keyTitle%
 
-		if (key != "ERROR" && name != "ERROR")
+		if (key != "ERROR")
 		{
 			outputArray[str] := key
+		}
+		if (name != "ERROR")
+		{
 			outputNameArray[str] := name
 		}
 	}
